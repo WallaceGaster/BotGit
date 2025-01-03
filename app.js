@@ -4,65 +4,94 @@ const BaileysProvider = require('@bot-whatsapp/provider/baileys');
 const MockAdapter = require('@bot-whatsapp/database/mock');
 
 // Variables globales para almacenar los datos
-let nombre, edad, turno, nombreRefe, horario, nomCompleto, fechNac, correoEle, apodo, condicion, numTelefonico, motvisita;
+let nombre, turno, nombreRefe, horario, nomCompleto, fechNac, correoEle, apodo, condicion, motvisita, telefonowhatsapp;
 
 // Flujo para agendar una consulta
-const flowAgendarCita = addKeyword('1')
-    .addAnswer('📅 Para agendar una consulta de valoración, por favor proporcione los siguientes detalles:')
-    .addAnswer('¿Nombre de la persona para quién sería la cita?', { capture: true }, async (ctx, { flowDynamic }) => {
+const flowAgendarCita = addKeyword(['1', 'Sí'])
+    .addAnswer('📅 Para agendar una consulta de valoración, por favor proporcione los siguientes detalles:',null, async (ctx) => {
+        console.log(ctx)
+
+        const numeroDeWhatsapp = ctx.from
+        telefonowhatsapp = numeroDeWhatsapp
+        const mensajeRecibido = ctx.body 
+        console.log(`numero recuperado: ${telefonowhatsapp}`);
+    })
+    .addAnswer('¿Nombre de la persona para quién sería la cita?', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
         nombre = ctx.body;
-        console.log(`Nombre del usuario: ${nombre}`);
-        await flowDynamic('Gracias por tu nombre.');
+        console.log(`datos del usuario: ${nombre}`);
+        if (!nombre.trim()) {
+            return fallBack();  // Si el nombre está vacío, vuelve a preguntar
+        }
     })
-    .addAnswer('¿Es referido de algun paciente de nosotros?', { capture: true }, async (ctx, { flowDynamic }) => {
-        edad = ctx.body;
-        console.log(`Edad del usuario: ${nombreRefe}`);
-        await flowDynamic('Gracias por tu edad.');
+    .addAnswer('¿Es referido de algun paciente de nosotros?', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
+        nombreRefe = ctx.body;
+        console.log(`Nombre referido: ${nombreRefe}`);
+        if (!nombreRefe.trim()) {
+            return fallBack();  // Si no hay respuesta, vuelve a preguntar
+        }
     })
-    .addAnswer('¿En qué turno prefieres, mañana o tarde?', { capture: true }, async (ctx, { flowDynamic }) => {
-        turno = ctx.body;
-        console.log(`Turno del usuario: ${turno}`);
-        await flowDynamic('Gracias por compartir el turno que prefieres.');
+    .addAnswer('¿En qué turno prefieres, mañana o tarde?', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
+        turno = ctx.body.toLowerCase();
+        console.log(`Turno elegido: ${turno}`);
+        if (turno !== 'mañana' && turno !== 'tarde') {
+            return fallBack();  // Verifica si la respuesta es "mañana" o "tarde"
+        }
     })
-    .addAnswer('¿Qué horario quieres en formato MM/DD/YYYY?', { capture: true }, async (ctx, { flowDynamic }) => {
-        horario = ctx.body;
-        console.log(`Horario del usuario: ${horario}`);
-        await flowDynamic('Gracias por compartir el horario que prefieres.');
-    })
-    .addAnswer('🦷 Nos puede compartir su información para abrir su expediente clínico y bloquear espacio en agenda\n\n Nombre completo como en su identificación oficial :', { capture: true }, async (ctx, { flowDynamic }) => {
+    .addAnswer(
+        '¿Qué horario prefieres? \n\n Lunes-Viernes \n 10:00am \n 11:30am \n 1:00pm \n 4:00pm  \n 5:30pm \n 7:00pm ',
+        { capture: true },
+        async (ctx, { flowDynamic, fallBack }) => {
+            horario = ctx.body;
+            console.log(`Horario del usuario: ${horario}`);
+            const horariosValidos = ['10:00am', '11:30am', '1:00pm', '4:00pm', '5:30pm', '7:00pm'];
+            if (!horariosValidos.includes(horario.trim())) {
+                return fallBack();  // Si el horario no es válido, vuelve a preguntar
+            }
+        }
+    )
+    .addAnswer('🦷 Nos puede compartir su información para abrir su expediente clínico y bloquear espacio en agenda\n\n Nombre completo como en su identificación oficial :', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
         nomCompleto = ctx.body;
         console.log(`Nombre completo: ${nomCompleto}`);
-        await flowDynamic('Gracias por compartir el nombre.');
+        if (!nomCompleto.trim()) {
+            return fallBack();  // Si el nombre completo está vacío, vuelve a preguntar
+        }
     })
-    .addAnswer('Fecha de nacimiento en formato MM/DD/YYYY?', { capture: true }, async (ctx, { flowDynamic }) => {
+    .addAnswer('Fecha de nacimiento en formato MM/DD/YYYY?', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
         fechNac = ctx.body;
-        console.log(`FechaNac del usuario: ${fechNac}`);
-        await flowDynamic('Gracias por compartir su fecha de nacimiento.');
+        console.log(`Fecha de nacimiento: ${fechNac}`);
+        const fechaRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/;
+        if (!fechaRegex.test(fechNac)) {
+            return fallBack();  // Si el formato de fecha no es correcto, vuelve a preguntar
+        }
     })
-    .addAnswer('Correo Electrónico', { capture: true }, async (ctx, { flowDynamic }) => {
+    .addAnswer('Correo Electrónico', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
         correoEle = ctx.body;
         console.log(`Correo del usuario: ${correoEle}`);
-        await flowDynamic('Gracias por compartir su correo electrónico.');
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(correoEle)) {
+            return fallBack();  // Si el correo no es válido, vuelve a preguntar
+        }
     })
-    .addAnswer('¿Cómo prefiere que le llamen?', { capture: true }, async (ctx, { flowDynamic }) => {
+    .addAnswer('¿Cómo prefiere que le llamen?', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
         apodo = ctx.body;
         console.log(`Apodo: ${apodo}`);
-        await flowDynamic('Gracias por compartir su preferencia.');
+        if (!apodo.trim()) {
+            return fallBack();  // Si el apodo está vacío, vuelve a preguntar
+        }
     })
-    .addAnswer('Condición, alergia, enfermedad o medicamentos que esté tomando, que el Doctor deba de conocer', { capture: true }, async (ctx, { flowDynamic }) => {
+    .addAnswer('Condición, alergia, enfermedad o medicamentos que esté tomando, que el Doctor deba de conocer', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
         condicion = ctx.body;
         console.log(`Condición: ${condicion}`);
-        await flowDynamic('Gracias por compartir su condición.');
+        if (!condicion.trim()) {
+            return fallBack();  // Si la condición está vacía, vuelve a preguntar
+        }
     })
-    .addAnswer('Número telefónico para confirmar asistencia', { capture: true }, async (ctx, { flowDynamic }) => {
-        numTelefonico = ctx.body;
-        console.log(`Número telefónico: ${numTelefonico}`);
-        await flowDynamic('Gracias por compartir su número.');
-    })
-    .addAnswer('¿Motivo de su visita?', { capture: true }, async (ctx, { flowDynamic }) => {
+    .addAnswer('¿Motivo de su visita?', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
         motvisita = ctx.body;
         console.log(`Motivo de la visita: ${motvisita}`);
-        await flowDynamic('Gracias por compartir su motivo.');
+        if (!motvisita.trim()) {
+            return fallBack();  // Si no se ingresa un motivo, vuelve a preguntar
+        }
         await flowDynamic('*Quedamos atentos a sus datos para bloquear espacio en agenda, de no ' +
             'recibir la información el espacio proporcionado queda liberado.* ');
         await flowDynamic('¡Su próxima cita ha quedado agendada! :) Será un placer saludarle pronto');
@@ -70,7 +99,7 @@ const flowAgendarCita = addKeyword('1')
     })
     .addAction(async () => {
         // Resumen de datos
-        console.log('Datos del usuario registrados:');
+        console.log('---------------------------Datos del usuario registrados:---------------');
         console.log(`Nombre: ${nombre}`);
         console.log(`Nombre de la persona referida: ${nombreRefe}`);
         console.log(`Turno: ${turno}`);
@@ -80,9 +109,18 @@ const flowAgendarCita = addKeyword('1')
         console.log(`Correo electrónico: ${correoEle}`);
         console.log(`Apodo: ${apodo}`);
         console.log(`Condición médica: ${condicion}`);
-        console.log(`Número telefónico: ${numTelefonico}`);
         console.log(`Motivo de la visita: ${motvisita}`);
+        console.log(`numero recuperado: ${telefonowhatsapp}`);
     });
+
+
+const flowNoAgendar = addKeyword(['2', 'No']) 
+    .addAnswer('😞 Entendemos que no deseas agendar una cita en este momento.')
+    .addAnswer('Si cambias de opinión, no dudes en contactarnos nuevamente. ¡Estaremos aquí para ayudarte! 😊')
+    .addAnswer(['Ingrese "inicio" para regresar al menú principal.',
+    ]);
+
+
 
 // Flujo para servicios
 const flowServicios = addKeyword('ser')
@@ -125,16 +163,16 @@ const flowDocs = addKeyword('doc')
         '1️⃣ Sí',
         '2️⃣ No\n',
         'Seleccione el número correspondiente.',
-    ], null, null, [flowAgendarCita]);
+    ], null, null, [flowAgendarCita, flowNoAgendar]);
 
 // Flujo principal de bienvenida
-const flowPrincipal = addKeyword(['hola', 'ole', 'alo'])
+const flowPrincipal = addKeyword(['hola', 'ole', 'alo', 'inicio'])
     .addAnswer('🙌 ¡Hola, bienvenido a Dental Clinic Boutique! 😊')
     .addAnswer([
         'Estoy aquí para ayudarte. Por favor, escribe la palabra clave según lo que necesites:',
-        '1️⃣ Escribe *ser* para ver nuestros *Servicios disponibles* 🦷.',
-        '2️⃣ Escribe *doc* para *Agendar una consulta*. 📅',
-        '3️⃣ Escribe *con* para conocer nuestra *Ubicación y contacto*. 📍',
+        '1️⃣ Escribe "*ser*" para ver nuestros *Servicios disponibles* 🦷.',
+        '2️⃣ Escribe "*doc*" para *Agendar una consulta*. 📅',
+        '3️⃣ Escribe "*con*" para conocer nuestra *Ubicación y contacto*. 📍',
     ], null, null, [flowServicios, flowDocs, flowContacto]);
 
 // Configuración del bot
