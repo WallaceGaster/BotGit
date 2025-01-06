@@ -30,25 +30,6 @@ const flowAgendarCita = addKeyword(['1', 'Sí'])
             return fallBack();  // Si no hay respuesta, vuelve a preguntar
         }
     })
-    .addAnswer('¿En qué turno prefieres, mañana o tarde?', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
-        turno = ctx.body.toLowerCase();
-        console.log(`Turno elegido: ${turno}`);
-        if (turno !== 'mañana' && turno !== 'tarde') {
-            return fallBack();  // Verifica si la respuesta es "mañana" o "tarde"
-        }
-    })
-    .addAnswer(
-        '¿Qué horario prefieres? \n\n Lunes-Viernes \n 10:00am \n 11:30am \n 1:00pm \n 4:00pm  \n 5:30pm \n 7:00pm ',
-        { capture: true },
-        async (ctx, { flowDynamic, fallBack }) => {
-            horario = ctx.body;
-            console.log(`Horario del usuario: ${horario}`);
-            const horariosValidos = ['10:00am', '11:30am', '1:00pm', '4:00pm', '5:30pm', '7:00pm'];
-            if (!horariosValidos.includes(horario.trim())) {
-                return fallBack();  // Si el horario no es válido, vuelve a preguntar
-            }
-        }
-    )
     .addAnswer('🦷 Nos puede compartir su información para abrir su expediente clínico y bloquear espacio en agenda\n\n Nombre completo como en su identificación oficial :', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
         nomCompleto = ctx.body;
         console.log(`Nombre completo: ${nomCompleto}`);
@@ -86,6 +67,25 @@ const flowAgendarCita = addKeyword(['1', 'Sí'])
             return fallBack();  // Si la condición está vacía, vuelve a preguntar
         }
     })
+    .addAnswer('¿En qué turno prefieres, mañana o tarde?', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
+        turno = ctx.body.toLowerCase();
+        console.log(`Turno elegido: ${turno}`);
+        if (turno !== 'mañana' && turno !== 'tarde') {
+            return fallBack();  // Verifica si la respuesta es "mañana" o "tarde"
+        }
+    })
+    .addAnswer(
+        '¿Qué horario prefieres? \n\n Lunes-Viernes \n 10:00am \n 11:30am \n 1:00pm \n 4:00pm  \n 5:30pm \n 7:00pm ',
+        { capture: true },
+        async (ctx, { flowDynamic, fallBack }) => {
+            horario = ctx.body;
+            console.log(`Horario del usuario: ${horario}`);
+            const horariosValidos = ['10:00am', '11:30am', '1:00pm', '4:00pm', '5:30pm', '7:00pm'];
+            if (!horariosValidos.includes(horario.trim())) {
+                return fallBack();  // Si el horario no es válido, vuelve a preguntar
+            }
+        }
+    )
     .addAnswer('¿Motivo de su visita?', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
         motvisita = ctx.body;
         console.log(`Motivo de la visita: ${motvisita}`);
@@ -102,14 +102,14 @@ const flowAgendarCita = addKeyword(['1', 'Sí'])
         console.log('---------------------------Datos del usuario registrados:---------------');
         console.log(`Nombre: ${nombre}`);
         console.log(`Nombre de la persona referida: ${nombreRefe}`);
-        console.log(`Turno: ${turno}`);
-        console.log(`Horario: ${horario}`);
         console.log(`Nombre completo: ${nomCompleto}`);
         console.log(`Fecha de nacimiento: ${fechNac}`);
         console.log(`Correo electrónico: ${correoEle}`);
         console.log(`Apodo: ${apodo}`);
         console.log(`Condición médica: ${condicion}`);
         console.log(`Motivo de la visita: ${motvisita}`);
+        console.log(`Turno: ${turno}`);
+        console.log(`Horario: ${horario}`);
         console.log(`numero recuperado: ${telefonowhatsapp}`);
     });
 
