@@ -180,7 +180,7 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
     })
     .addAnswer('Apellido Materno del menor:', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
-        const datosUsuario = sesiones.get(idUsuario); 
+        const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.apellidoMaterno = ctx.body.trim();
         console.log(`Apellido Materno (${idUsuario}): ${datosUsuario.apellidoMaterno}`);
 
@@ -361,12 +361,14 @@ const flowDocs = addKeyword('doc')
         'Seleccione el número correspondiente.',
     ], null, null, [flowAgendarCitaMayor, flowAgendarCitaMenor, flowNoAgendar]);
 
-const flowPruebaCalendar = addKeyword(['calendarios', 'prueba calendario'])
+    const flowPruebaCalendar = addKeyword(['calendarios', 'prueba calendario'])
     .addAnswer('📅 Obteniendo la lista de citas disponibles, por favor espera...', null, async (ctx, { flowDynamic }) => {
         try {
             // Realiza la petición para obtener los slots disponibles
+            console.log('Iniciando solicitud para obtener citas disponibles.');
             const response = await axios.get('http://localhost:5000/DentalArce/getAvailableSlots/ce85ebbb918c7c7dfd7bad2eec6c142012d24c2b17e803e21b9d6cc98bb8472b');
             const slots = response.data;
+            console.log('Citas recuperadas:', slots);
 
             if (slots.length === 0) {
                 await flowDynamic('❌ No hay citas disponibles en este momento.');
@@ -384,26 +386,68 @@ const flowPruebaCalendar = addKeyword(['calendarios', 'prueba calendario'])
             // Envía el mensaje con las opciones al usuario
             await flowDynamic(slotsMessage);
 
-            // Espera la respuesta del usuario
-            addKeyword([]).addAnswer('', null, async (ctx, { flowDynamic }) => {
-                const userChoice = parseInt(ctx.body.trim(), 10);
-
-                // Validación de la opción elegida
-                if (isNaN(userChoice) || userChoice < 1 || userChoice > slots.length) {
-                    await flowDynamic('❌ Opción no válida. Por favor, intenta de nuevo.');
-                    return;
-                }
-
-                // Recupera la cita seleccionada por el usuario
-                const selectedSlot = slots[userChoice - 1];
-                await flowDynamic(`✔️ Has seleccionado la cita:
-${selectedSlot.day} ${selectedSlot.date} de ${selectedSlot.start} a ${selectedSlot.end}`);
-            });
+            // Almacena los slots disponibles en la sesión
+            const idUsuario = ctx.from;
+            if (!sesiones.has(idUsuario)) {
+                sesiones.set(idUsuario, {});
+            }
+            const datosUsuario = sesiones.get(idUsuario);
+            datosUsuario.slots = slots; // Guarda los slots disponibles
         } catch (error) {
             console.error('Error al obtener las citas disponibles:', error);
             await flowDynamic('❌ Hubo un error al obtener las citas. Inténtalo más tarde.');
         }
+    })
+    .addAnswer('Por favor, elige un número correspondiente a tu cita preferida.', { capture: true }, async (ctx, { fallBack, flowDynamic }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        const slots = datosUsuario?.slots;
+
+        if (!slots || slots.length === 0) {
+            await flowDynamic('❌ No hay citas disponibles o se perdió la información. Intenta nuevamente.');
+            return;
+        }
+
+        const userInput = ctx.body.trim();
+        const userChoice = parseInt(userInput, 10);
+
+        if (isNaN(userChoice) || userChoice < 1 || userChoice > slots.length) {
+            return fallBack('❌ Opción inválida. Por favor, elige un número válido de la lista.');
+        }
+
+        // Recupera el slot seleccionado
+        const selectedSlot = slots[userChoice - 1];
+        datosUsuario.horario = `${selectedSlot.day} ${selectedSlot.date} de ${selectedSlot.start} a ${selectedSlot.end}`;
+        console.log(`Usuario (${idUsuario}) seleccionó la cita:`, datosUsuario.horario);
+
+        // Extrae la fecha y hora de start y end
+        const date = selectedSlot.date; // Formato: 2025-01-09
+        const startTime = selectedSlot.start; // Formato: 16:00
+        const endTime = selectedSlot.end; // Formato: 16:45
+
+        // Convierte a formato "YYYY-MM-DDTHH:MM:SS"
+        const startDateTime = `${date}T${startTime}:00`;
+        const endDateTime = `${date}T${endTime}:00`;
+
+        // Realiza la solicitud para reservar la cita
+        try {
+            const response = await axios.post('http://localhost:5000/DentalArce/crearCitaCV/ce85ebbb918c7c7dfd7bad2eec6c142012d24c2b17e803e21b9d6cc98bb8472b/ee75200b88065c8f339787783c521b9f5bcc11242f09ac9dd1512d23a98fb485', {
+                "summary": 'null',
+                "description": 'null',
+                "startDateTime": startDateTime,
+                "endDateTime": endDateTime,
+            });
+            console.log('Respuesta del servidor para reserva:', response.data);
+            await flowDynamic(`✅ Tu cita ha sido reservada exitosamente para el ${datosUsuario.horario}.`);
+        } catch (error) {
+            console.error('Error al reservar la cita:', error);
+            await flowDynamic('❌ Hubo un error al reservar la cita. Por favor, inténtalo más tarde.');
+        }
+
+        // Limpia los datos de los slots para evitar inconsistencias
+        delete datosUsuario.slots;
     });
+
 
 
 const flowPrincipal = addKeyword(['hola', 'ole', 'alo', 'inicio'])
