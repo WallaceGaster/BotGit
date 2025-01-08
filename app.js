@@ -22,19 +22,91 @@ const MONGO_DB_NAME = 'Calendar';
 // Mapa para almacenar sesiones de usuarios
 const sesiones = new Map();
 
-const flowAgendarCita = addKeyword(['1', 'Sí'])
-    .addAnswer('¿Nombre de la persona para quién sería la cita?', { capture: true }, async (ctx, { fallBack }) => {
-        const idUsuario = ctx.from; // ID único del usuario (número de WhatsApp)
+const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
+    .addAnswer('¿Nombre de la persona para quién sería la cita sin apellidos?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
         if (!sesiones.has(idUsuario)) {
-            sesiones.set(idUsuario, {}); // Inicializar sesión si no existe
+            sesiones.set(idUsuario, {});
         }
 
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.nombre = ctx.body.trim();
-        console.log(`Datos del usuario (${idUsuario}): ${datosUsuario.nombre}`);
+        console.log(`Nombre registrado (${idUsuario}): ${datosUsuario.nombre}`);
 
         if (!datosUsuario.nombre) {
             return fallBack('Por favor, ingresa un nombre válido.');
+        }
+    })
+    .addAnswer('Por favor, indícanos el Apellido Paterno del paciente:', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.apellidoPaterno = ctx.body.trim();
+        console.log(`Apellido Paterno (${idUsuario}): ${datosUsuario.apellidoPaterno}`);
+
+        if (!datosUsuario.apellidoPaterno) {
+            return fallBack('Por favor, ingresa un Apellido Paterno válido.');
+        }
+    })
+    .addAnswer('Por favor, indícanos el Apellido Materno del paciente:', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.apellidoMaterno = ctx.body.trim();
+        console.log(`Apellido Materno (${idUsuario}): ${datosUsuario.apellidoMaterno}`);
+
+        if (!datosUsuario.apellidoMaterno) {
+            return fallBack('Por favor, ingresa un Apellido Materno válido.');
+        }
+    })
+    .addAnswer('Es referido de algun paciente de nosotros:', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.nombreReferido = ctx.body.trim();
+        console.log(`Nombre referido (${idUsuario}): ${datosUsuario.nombreReferido}`);
+
+        if (!datosUsuario.nombreReferido) {
+            return fallBack('Por favor, ingresa un nombre valido.');
+        }
+    })
+    .addAnswer('Nos puede compartir su información para abrir su expediente clínico y bloquear espacio en agenda \n ¿Cuál es su fecha de nacimiento? (Formato: YYYY-MM-DD)', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.fechaNac = ctx.body.trim();
+        console.log(`Fecha de Nacimiento (${idUsuario}): ${datosUsuario.fechaNac}`);
+
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(datosUsuario.fechaNac)) {
+            return fallBack('Por favor, ingresa una fecha válida en el formato YYYY-MM-DD.');
+        }
+    })
+    .addAnswer('Por favor, indícanos tu correo electrónico:', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.correoElectronico = ctx.body.trim();
+        console.log(`Correo Electrónico (${idUsuario}): ${datosUsuario.correoElectronico}`);
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(datosUsuario.correoElectronico)) {
+            return fallBack('Por favor, ingresa un correo electrónico válido.');
+        }
+    })
+    .addAnswer('¿Como le gusta que le llamen?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.apodo = ctx.body.trim();
+        console.log(`Apodo (${idUsuario}): ${datosUsuario.apodo}`);
+
+        if (!datosUsuario.apodo) {
+            return fallBack('Por favor, ingresa un nombre valido.');
+        }
+    })
+    .addAnswer('Condición, alergia, enfermedad o medicamentos que esté tomando, que el Doctor deba de conocer', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.condicion = ctx.body.trim();
+        console.log(`Condicion (${idUsuario}): ${datosUsuario.condicion}`);
+
+        if (!datosUsuario.condicion) {
+            return fallBack('Por favor, ingresa una condicion valida.');
         }
     })
     .addAnswer('Número telefónico del paciente', { capture: true }, async (ctx, { fallBack }) => {
@@ -48,32 +120,50 @@ const flowAgendarCita = addKeyword(['1', 'Sí'])
             return fallBack('Por favor, ingresa un número de teléfono válido.');
         }
     })
+    .addAnswer('¿Cuál es tu motivo de consulta?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.motivoVisita = ctx.body.trim();
+        console.log(`Motivo de Consulta (${idUsuario}): ${datosUsuario.motivoVisita}`);
+
+        if (!datosUsuario.motivoVisita) {
+            return fallBack('Por favor, ingresa un motivo válido.');
+        }
+    })
     .addAction(async (ctx, { flowDynamic }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
 
-        console.log(`Datos del usuario (${idUsuario}) registrados:`);
-        console.log(`Nombre: ${datosUsuario.nombre}`);
-        console.log(`Número telefónico: ${datosUsuario.telefono}`);
+        console.log(`Datos finales del usuario (${idUsuario}):`, datosUsuario);
 
         try {
             const response = await axios.post('http://localhost:5000/DentalArce/paciente', {
                 nombre: datosUsuario.nombre,
                 telefonoWhatsapp: datosUsuario.telefono,
+                nombreReferido: datosUsuario.nombreReferido,
+                horario: datosUsuario.horario || 'Pendiente',
+                ApellidoMaterno: datosUsuario.apellidoMaterno,
+                ApellidoPaterno: datosUsuario.apellidoPaterno,
+                fechaNac: datosUsuario.fechaNac,
+                correoElectronico: datosUsuario.correoElectronico,
+                apodo: datosUsuario.apodo,
+                condicion: datosUsuario.condicion,
+                motivoVisita: datosUsuario.motivoVisita,
+                nombreTutor: datosUsuario.nombreTutor || null,
             });
 
             console.log('Respuesta del servidor:', response.data);
-            await flowDynamic('¡Gracias! Hemos registrado toda tu información. 😊');
+            await flowDynamic('¡Gracias! Hemos registrado toda tu información. Te contactaremos pronto para confirmar la cita. 😊');
         } catch (error) {
             console.error('Error al registrar los datos del paciente:', error);
             await flowDynamic('❌ Hubo un error al registrar los datos del paciente. Por favor, inténtalo más tarde.');
         }
 
-        // Eliminar la sesión del usuario después de completar el flujo
+        // Eliminar sesión
         sesiones.delete(idUsuario);
     });
 
-const flowNoAgendar = addKeyword(['2', 'No'])
+const flowNoAgendar = addKeyword(['3', 'No'])
     .addAnswer('😞 Entendemos que no deseas agendar una cita en este momento.')
     .addAnswer('Si cambias de opinión, no dudes en contactarnos nuevamente. ¡Estaremos aquí para ayudarte! 😊')
     .addAnswer(['Ingrese "inicio" para regresar al menú principal.']);
@@ -111,25 +201,59 @@ const flowDocs = addKeyword('doc')
         '* Costo del tratamiento elegido',
         '* Plan de pagos\n',
         '📆 Duración: 1 hora 30 minutos',
-        '💰 Costo: $700.00 MXN\n',
-        '¿Le gustaría reservar una consulta?',
-        '1️⃣ Sí',
-        '2️⃣ No\n',
+        '💰 Costo: $700.00 MXN\n\n',
+        '➡️ Nuestra atención a pacientes es a partir de los 15 años de edad. \n',
+        'Le gustaría reservar una consulta para:',
+        '1️⃣ Paciente mayor de edad (18 años o más)',
+        '2️⃣ Paciente menos de edad (entre 15 y 17 años)',
+        '2️⃣ No deseo una cita por el momento\n',
         'Seleccione el número correspondiente.',
-    ], null, null, [flowAgendarCita, flowNoAgendar]);
+    ], null, null, [flowAgendarCitaMayor, flowNoAgendar]);
 
 const flowPruebaCalendar = addKeyword(['calendarios', 'prueba calendario'])
-    .addAnswer('📅 Obteniendo la lista de calendarios, por favor espera...', null, async (ctx, { flowDynamic }) => {
+    .addAnswer('📅 Obteniendo la lista de citas disponibles, por favor espera...', null, async (ctx, { flowDynamic }) => {
         try {
-            const response = await axios.get('http://localhost:5000/DentalArce/calendars');
-            const calendars = response.data.slice(0, 3).map(calendar => calendar.id);
-            console.log('Calendarios obtenidos:', calendars);
-            await flowDynamic(`📋 Aquí tienes los primeros 3 calendarios disponibles:\n${calendars.join('\n')}`);
+            // Realiza la petición para obtener los slots disponibles
+            const response = await axios.get('http://localhost:5000/DentalArce/getAvailableSlots/ce85ebbb918c7c7dfd7bad2eec6c142012d24c2b17e803e21b9d6cc98bb8472b');
+            const slots = response.data;
+
+            if (slots.length === 0) {
+                await flowDynamic('❌ No hay citas disponibles en este momento.');
+                return;
+            }
+
+            // Construye un mensaje con las opciones de citas
+            let slotsMessage = '📋 Aquí tienes las citas disponibles:\n';
+            for (let i = 0; i < slots.length; i++) {
+                const slot = slots[i];
+                slotsMessage += `${i + 1}. ${slot.day} ${slot.date} de ${slot.start} a ${slot.end}\n`;
+            }
+            slotsMessage += '\nPor favor, elige una opción ingresando el número correspondiente:';
+
+            // Envía el mensaje con las opciones al usuario
+            await flowDynamic(slotsMessage);
+
+            // Espera la respuesta del usuario
+            addKeyword([]).addAnswer('', null, async (ctx, { flowDynamic }) => {
+                const userChoice = parseInt(ctx.body.trim(), 10);
+
+                // Validación de la opción elegida
+                if (isNaN(userChoice) || userChoice < 1 || userChoice > slots.length) {
+                    await flowDynamic('❌ Opción no válida. Por favor, intenta de nuevo.');
+                    return;
+                }
+
+                // Recupera la cita seleccionada por el usuario
+                const selectedSlot = slots[userChoice - 1];
+                await flowDynamic(`✔️ Has seleccionado la cita:
+${selectedSlot.day} ${selectedSlot.date} de ${selectedSlot.start} a ${selectedSlot.end}`);
+            });
         } catch (error) {
-            console.error('Error al obtener los calendarios:', error);
-            await flowDynamic('❌ Hubo un error al obtener los calendarios. Inténtalo más tarde.');
+            console.error('Error al obtener las citas disponibles:', error);
+            await flowDynamic('❌ Hubo un error al obtener las citas. Inténtalo más tarde.');
         }
     });
+
 
 const flowPrincipal = addKeyword(['hola', 'ole', 'alo', 'inicio'])
     .addAnswer('🙌 ¡Hola, bienvenido a Dental Clinic Boutique! 😊')
@@ -156,4 +280,4 @@ const main = async () => {
     QRPortalWeb();
 };
 
-main();
+main(); 
