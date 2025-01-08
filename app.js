@@ -23,41 +23,41 @@ const MONGO_DB_NAME = 'Calendar';
 const sesiones = new Map();
 
 const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
-    .addAnswer('¿Nombre de la persona para quién sería la cita sin apellidos?', { capture: true }, async (ctx, { fallBack }) => {
+    .addAnswer('Nos puede compartir su información para abrir su expediente clínico y bloquear espacio en agenda \n¿Apellido parterno del paciente?', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         if (!sesiones.has(idUsuario)) {
             sesiones.set(idUsuario, {});
         }
 
         const datosUsuario = sesiones.get(idUsuario);
-        datosUsuario.nombre = ctx.body.trim();
-        console.log(`Nombre registrado (${idUsuario}): ${datosUsuario.nombre}`);
+        datosUsuario.apellidoPaterno = ctx.body.trim();
+        console.log(`Nombre registrado (${idUsuario}): ${datosUsuario.apellidoPaterno}`);
 
-        if (!datosUsuario.nombre) {
+        if (!datosUsuario.apellidoPaterno) {
             return fallBack('Por favor, ingresa un nombre válido.');
         }
     })
-    .addAnswer('Por favor, indícanos el Apellido Paterno del paciente:', { capture: true }, async (ctx, { fallBack }) => {
-        const idUsuario = ctx.from;
-        const datosUsuario = sesiones.get(idUsuario);
-        datosUsuario.apellidoPaterno = ctx.body.trim();
-        console.log(`Apellido Paterno (${idUsuario}): ${datosUsuario.apellidoPaterno}`);
-
-        if (!datosUsuario.apellidoPaterno) {
-            return fallBack('Por favor, ingresa un Apellido Paterno válido.');
-        }
-    })
-    .addAnswer('Por favor, indícanos el Apellido Materno del paciente:', { capture: true }, async (ctx, { fallBack }) => {
+    .addAnswer('Apellido Materno del paciente:', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.apellidoMaterno = ctx.body.trim();
         console.log(`Apellido Materno (${idUsuario}): ${datosUsuario.apellidoMaterno}`);
 
         if (!datosUsuario.apellidoMaterno) {
+            return fallBack('Por favor, ingresa un Apellido Paterno válido.');
+        }
+    })
+    .addAnswer('Nombre del paciente:', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.nombre = ctx.body.trim();
+        console.log(`Nombre (${idUsuario}): ${datosUsuario.nombre}`);
+
+        if (!datosUsuario.nombre) {
             return fallBack('Por favor, ingresa un Apellido Materno válido.');
         }
     })
-    .addAnswer('Es referido de algun paciente de nosotros:', { capture: true }, async (ctx, { fallBack }) => {
+    .addAnswer('¿Fue referido por alguno de nuestros pacientes? Si es así, por favor indica su nombre. Si no, simplemente escribe "no" ', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.nombreReferido = ctx.body.trim();
@@ -67,7 +67,7 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
             return fallBack('Por favor, ingresa un nombre valido.');
         }
     })
-    .addAnswer('Nos puede compartir su información para abrir su expediente clínico y bloquear espacio en agenda \n ¿Cuál es su fecha de nacimiento? (Formato: YYYY-MM-DD)', { capture: true }, async (ctx, { fallBack }) => {
+    .addAnswer('¿Cuál es su fecha de nacimiento? (Formato: YYYY-MM-DD)', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.fechaNac = ctx.body.trim();
@@ -89,7 +89,7 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
             return fallBack('Por favor, ingresa un correo electrónico válido.');
         }
     })
-    .addAnswer('¿Como le gusta que le llamen?', { capture: true }, async (ctx, { fallBack }) => {
+    .addAnswer('¿Como le gusta que le digan?', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.apodo = ctx.body.trim();
@@ -99,7 +99,7 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
             return fallBack('Por favor, ingresa un nombre valido.');
         }
     })
-    .addAnswer('Condición, alergia, enfermedad o medicamentos que esté tomando, que el Doctor deba de conocer', { capture: true }, async (ctx, { fallBack }) => {
+    .addAnswer('¿Tienes alguna condición médica, alergia, enfermedad o estás tomando algún medicamento que el doctor deba conocer? Si no es el caso, por favor escribe "Ninguna".', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.condicion = ctx.body.trim();
@@ -120,7 +120,158 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
             return fallBack('Por favor, ingresa un número de teléfono válido.');
         }
     })
-    .addAnswer('¿Cuál es tu motivo de consulta?', { capture: true }, async (ctx, { fallBack }) => {
+    .addAnswer('¿Cuál es tu motivo de visita?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.motivoVisita = ctx.body.trim();
+        console.log(`Motivo de Consulta (${idUsuario}): ${datosUsuario.motivoVisita}`);
+
+        if (!datosUsuario.motivoVisita) {
+            return fallBack('Por favor, ingresa un motivo válido.');
+        }
+    })
+    .addAction(async (ctx, { flowDynamic }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+
+        console.log(`Datos finales del usuario (${idUsuario}):`, datosUsuario);
+
+        try {
+            const response = await axios.post('http://localhost:5000/DentalArce/paciente', {
+                nombre: datosUsuario.nombre,
+                telefonoWhatsapp: datosUsuario.telefono,
+                nombreReferido: datosUsuario.nombreReferido,
+                horario: datosUsuario.horario || 'Pendiente',
+                ApellidoMaterno: datosUsuario.apellidoMaterno,
+                ApellidoPaterno: datosUsuario.apellidoPaterno,
+                fechaNac: datosUsuario.fechaNac,
+                correoElectronico: datosUsuario.correoElectronico,
+                apodo: datosUsuario.apodo,
+                condicion: datosUsuario.condicion,
+                motivoVisita: datosUsuario.motivoVisita,
+                nombreTutor: datosUsuario.nombreTutor || null,
+            });
+
+            console.log('Respuesta del servidor:', response.data);
+            await flowDynamic('¡Gracias! Hemos registrado toda tu información. Te contactaremos pronto para confirmar la cita. 😊');
+        } catch (error) {
+            console.error('Error al registrar los datos del paciente:', error);
+            await flowDynamic('❌ Hubo un error al registrar los datos del paciente. Por favor, inténtalo más tarde.');
+        }
+
+        // Eliminar sesión
+        sesiones.delete(idUsuario);
+    });
+
+const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
+    .addAnswer('Nos puede compartir su información para abrir su expediente clínico y bloquear espacio en agenda \n¿Apellido parterno del menor?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        if (!sesiones.has(idUsuario)) {
+            sesiones.set(idUsuario, {});
+        }
+
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.apellidoPaterno = ctx.body.trim();
+        console.log(`Nombre registrado (${idUsuario}): ${datosUsuario.apellidoPaterno}`);
+
+        if (!datosUsuario.apellidoPaterno) {
+            return fallBack('Por favor, ingresa un nombre válido.');
+        }
+    })
+    .addAnswer('Apellido Materno del menor:', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario); 
+        datosUsuario.apellidoMaterno = ctx.body.trim();
+        console.log(`Apellido Materno (${idUsuario}): ${datosUsuario.apellidoMaterno}`);
+
+        if (!datosUsuario.apellidoMaterno) {
+            return fallBack('Por favor, ingresa un Apellido Paterno válido.');
+        }
+    })
+    .addAnswer('Nombre del menor:', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.nombre = ctx.body.trim();
+        console.log(`Apellido Materno (${idUsuario}): ${datosUsuario.nombre}`);
+
+        if (!datosUsuario.nombre) {
+            return fallBack('Por favor, ingresa un nombre válido.');
+        }
+    })
+    .addAnswer('Nombre del tutor:', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.nombreTutor = ctx.body.trim();
+        console.log(`Apellido Materno (${idUsuario}): ${datosUsuario.nombreTutor}`);
+
+        if (!datosUsuario.nombreTutor) {
+            return fallBack('Por favor, ingresa un nombre válido.');
+        }
+    })
+    .addAnswer('¿Fue referido por alguno de nuestros pacientes? Si es así, por favor indica su nombre. Si no, simplemente escribe "no" ', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.nombreReferido = ctx.body.trim();
+        console.log(`Nombre referido (${idUsuario}): ${datosUsuario.nombreReferido}`);
+
+        if (!datosUsuario.nombreReferido) {
+            return fallBack('Por favor, ingresa un nombre valido.');
+        }
+    })
+    .addAnswer('¿Cuál es su fecha de nacimiento del menor? (Formato: YYYY-MM-DD)', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.fechaNac = ctx.body.trim();
+        console.log(`Fecha de Nacimiento (${idUsuario}): ${datosUsuario.fechaNac}`);
+
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(datosUsuario.fechaNac)) {
+            return fallBack('Por favor, ingresa una fecha válida en el formato YYYY-MM-DD.');
+        }
+    })
+    .addAnswer('Correo electrónico de madre, padre o tutor:', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.correoElectronico = ctx.body.trim();
+        console.log(`Correo Electrónico (${idUsuario}): ${datosUsuario.correoElectronico}`);
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(datosUsuario.correoElectronico)) {
+            return fallBack('Por favor, ingresa un correo electrónico válido.');
+        }
+    })
+    .addAnswer('¿Como le gusta que le digan al menor?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.apodo = ctx.body.trim();
+        console.log(`Apodo (${idUsuario}): ${datosUsuario.apodo}`);
+
+        if (!datosUsuario.apodo) {
+            return fallBack('Por favor, ingresa un nombre valido.');
+        }
+    })
+    .addAnswer('¿Tienes alguna condición médica, alergia, enfermedad o estás tomando algún medicamento que el doctor deba conocer? Si no es el caso, por favor escribe "Ninguna".', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.condicion = ctx.body.trim();
+        console.log(`Condicion (${idUsuario}): ${datosUsuario.condicion}`);
+
+        if (!datosUsuario.condicion) {
+            return fallBack('Por favor, ingresa una condicion valida.');
+        }
+    })
+    .addAnswer('Número telefónico para confirmar asistencia', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.telefono = ctx.body.trim();
+        console.log(`Número telefónico (${idUsuario}): ${datosUsuario.telefono}`);
+
+        const phoneRegex = /^\d{10}$/;
+        if (!phoneRegex.test(datosUsuario.telefono)) {
+            return fallBack('Por favor, ingresa un número de teléfono válido.');
+        }
+    })
+    .addAnswer('¿Cuál es tu motivo de su visita?', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.motivoVisita = ctx.body.trim();
@@ -208,7 +359,7 @@ const flowDocs = addKeyword('doc')
         '2️⃣ Paciente menos de edad (entre 15 y 17 años)',
         '2️⃣ No deseo una cita por el momento\n',
         'Seleccione el número correspondiente.',
-    ], null, null, [flowAgendarCitaMayor, flowNoAgendar]);
+    ], null, null, [flowAgendarCitaMayor, flowAgendarCitaMenor, flowNoAgendar]);
 
 const flowPruebaCalendar = addKeyword(['calendarios', 'prueba calendario'])
     .addAnswer('📅 Obteniendo la lista de citas disponibles, por favor espera...', null, async (ctx, { flowDynamic }) => {
