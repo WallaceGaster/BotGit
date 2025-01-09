@@ -281,6 +281,38 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
             return fallBack('Por favor, ingresa un motivo válido.');
         }
     })
+    .addAction(async (ctx, { flowDynamic }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+
+        console.log(`Datos finales del usuario (${idUsuario}):`, datosUsuario);
+
+        try {
+            const response = await axios.post('http://localhost:5000/DentalArce/paciente', {
+                nombre: datosUsuario.nombre,
+                telefonoWhatsapp: datosUsuario.telefono,
+                nombreReferido: datosUsuario.nombreReferido,
+                horario: datosUsuario.horario || 'Pendiente',
+                ApellidoMaterno: datosUsuario.apellidoMaterno,
+                ApellidoPaterno: datosUsuario.apellidoPaterno,
+                fechaNac: datosUsuario.fechaNac,
+                correoElectronico: datosUsuario.correoElectronico,
+                apodo: datosUsuario.apodo,
+                condicion: datosUsuario.condicion,
+                motivoVisita: datosUsuario.motivoVisita,
+                nombreTutor: datosUsuario.nombreTutor || null,
+            });
+
+            console.log('Respuesta del servidor:', response.data);
+            await flowDynamic('¡Gracias! Hemos registrado toda tu información. Te contactaremos pronto para confirmar la cita. 😊');
+        } catch (error) {
+            console.error('Error al registrar los datos del paciente:', error);
+            await flowDynamic('❌ Hubo un error al registrar los datos del paciente. Por favor, inténtalo más tarde.');
+        }
+
+        // Eliminar sesión
+        sesiones.delete(idUsuario);
+    })
     .addAnswer('📅 Obteniendo la lista de citas disponibles, por favor espera...', null, async (ctx, { flowDynamic }) => {
         try {
             // Realiza la petición para obtener los slots disponibles
@@ -300,7 +332,7 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
                 const slot = slots[i];
                 slotsMessage += `${i + 1}. ${slot.day} ${slot.date} de ${slot.start} a ${slot.end}\n`;
             }
-            slotsMessage += '\nPor favor, elige una opción ingresando el número correspondiente:';
+            slotsMessage += '';
 
             // Envía el mensaje con las opciones al usuario
             await flowDynamic(slotsMessage);
@@ -366,38 +398,7 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
         // Limpia los datos de los slots para evitar inconsistencias
         delete datosUsuario.slots;
     })
-    .addAction(async (ctx, { flowDynamic }) => {
-        const idUsuario = ctx.from;
-        const datosUsuario = sesiones.get(idUsuario);
 
-        console.log(`Datos finales del usuario (${idUsuario}):`, datosUsuario);
-
-        try {
-            const response = await axios.post('http://localhost:5000/DentalArce/paciente', {
-                nombre: datosUsuario.nombre,
-                telefonoWhatsapp: datosUsuario.telefono,
-                nombreReferido: datosUsuario.nombreReferido,
-                horario: datosUsuario.horario || 'Pendiente',
-                ApellidoMaterno: datosUsuario.apellidoMaterno,
-                ApellidoPaterno: datosUsuario.apellidoPaterno,
-                fechaNac: datosUsuario.fechaNac,
-                correoElectronico: datosUsuario.correoElectronico,
-                apodo: datosUsuario.apodo,
-                condicion: datosUsuario.condicion,
-                motivoVisita: datosUsuario.motivoVisita,
-                nombreTutor: datosUsuario.nombreTutor || null,
-            });
-
-            console.log('Respuesta del servidor:', response.data);
-            await flowDynamic('¡Gracias! Hemos registrado toda tu información. Te contactaremos pronto para confirmar la cita. 😊');
-        } catch (error) {
-            console.error('Error al registrar los datos del paciente:', error);
-            await flowDynamic('❌ Hubo un error al registrar los datos del paciente. Por favor, inténtalo más tarde.');
-        }
-
-        // Eliminar sesión
-        sesiones.delete(idUsuario);
-    });
 
 const flowNoAgendar = addKeyword(['3', 'No'])
     .addAnswer('😞 Entendemos que no deseas agendar una cita en este momento.')
@@ -446,7 +447,7 @@ const flowDocs = addKeyword('doc')
         'Seleccione el número correspondiente.',
     ], null, null, [flowAgendarCitaMayor, flowAgendarCitaMenor, flowNoAgendar]);
 
-    const flowPruebaCalendar = addKeyword(['calendarios', 'prueba calendario'])
+const flowPruebaCalendar = addKeyword(['calendarios', 'prueba calendario'])
     .addAnswer('📅 Obteniendo la lista de citas disponibles, por favor espera...', null, async (ctx, { flowDynamic }) => {
         try {
             // Realiza la petición para obtener los slots disponibles
