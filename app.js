@@ -66,13 +66,14 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
         if (datosUsuario.genero !== 'masculino' && datosUsuario.genero !== 'femenino') {
             return fallBack('Por favor, ingresa "masculino" o "femenino".');
         }
-        
+
     })
     .addAnswer('¿Cuál es el peso del paciente en kilogramos?', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.peso = parseFloat(ctx.body.trim());
-    
+        console.log(`Peso (${idUsuario}): ${datosUsuario.peso}`);
+
         if (isNaN(datosUsuario.peso) || datosUsuario.peso <= 0) {
             return fallBack('Por favor, ingresa un peso válido en kilogramos.');
         }
@@ -81,7 +82,8 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.altura = parseFloat(ctx.body.trim());
-    
+        
+        console.log(`Altura (${idUsuario}): ${datosUsuario.altura}`);
         if (isNaN(datosUsuario.altura) || datosUsuario.altura <= 0) {
             return fallBack('Por favor, ingresa una altura válida en centímetros.');
         }
@@ -90,7 +92,7 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.direccion = ctx.body.trim();
-    
+
         if (!datosUsuario.direccion) {
             return fallBack('Por favor, ingresa una dirección válida.');
         }
@@ -192,10 +194,10 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
                 altura: datosUsuario.altura,
                 peso: datosUsuario.peso,
                 direccion: datosUsuario.direccion,
-                alergias:  datosUsuario.alergias || null,
+                alergias: datosUsuario.alergias || null,
                 medicamentos: datosUsuario.medicamentos || null,
                 idDoctor: datosUsuario.idDoctor || null,
-                telefonoWhatsapp: idUsuario, 
+                telefonoWhatsapp: idUsuario,
             });
 
             console.log('Respuesta del servidor:', response.data);
@@ -339,13 +341,13 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
         if (datosUsuario.genero !== 'masculino' && datosUsuario.genero !== 'femenino') {
             return fallBack('Por favor, ingresa "masculino" o "femenino".');
         }
-        
+
     })
     .addAnswer('¿Cuál es el peso del menor en kilogramos?', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.peso = parseFloat(ctx.body.trim());
-    
+
         if (isNaN(datosUsuario.peso) || datosUsuario.peso <= 0) {
             return fallBack('Por favor, ingresa un peso válido en kilogramos.');
         }
@@ -354,7 +356,7 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.altura = parseFloat(ctx.body.trim());
-    
+
         if (isNaN(datosUsuario.altura) || datosUsuario.altura <= 0) {
             return fallBack('Por favor, ingresa una altura válida en centímetros.');
         }
@@ -363,7 +365,7 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.direccion = ctx.body.trim();
-    
+
         if (!datosUsuario.direccion) {
             return fallBack('Por favor, ingresa una dirección válida.');
         }
@@ -475,10 +477,10 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
                 altura: datosUsuario.altura,
                 peso: datosUsuario.peso,
                 direccion: datosUsuario.direccion,
-                alergias:  datosUsuario.alergias || null,
+                alergias: datosUsuario.alergias || null,
                 medicamentos: datosUsuario.medicamentos || null,
                 idDoctor: datosUsuario.idDoctor || null,
-                telefonoWhatsapp: idUsuario, 
+                telefonoWhatsapp: idUsuario,
             });
 
             console.log('Respuesta del servidor:', response.data);
@@ -625,29 +627,40 @@ const flowDocs = addKeyword('doc')
         'Seleccione el número correspondiente.',
     ], null, null, [flowAgendarCitaMayor, flowAgendarCitaMenor, flowNoAgendar]);
 
-    const flowPrincipal = addKeyword(['hola', 'ole', 'alo', 'inicio'])
-        .addAnswer('🙌 ¡Hola, bienvenido a Dental Clinic Boutique! 😊', null, async (ctx) => {
-            const idUsuario = ctx.from;
-            const telefonoUsuario = ctx.from; // Este campo contiene el número de WhatsApp del usuario.
-            
-            if (!sesiones.has(idUsuario)) {
-                sesiones.set(idUsuario, { telefono: telefonoUsuario });
+const flowPrincipal = addKeyword(['hola', 'ole', 'alo', 'inicio'])
+    .addAnswer('🙌 ¡Hola, bienvenido a Dental Clinic Boutique! 😊', null, async (ctx, { flowDynamic }) => {
+        const idUsuario = ctx.from;
+        const telefonoUsuario = ctx.from; // Este campo contiene el número de WhatsApp del usuario.
+
+        // Verifica si el usuario está registrado
+        try {
+            const response = await axios.get(`http://localhost:5000/DentalArce/buscarPacientePorTelefono/${telefonoUsuario}`);
+            const paciente = response.data;
+
+            if (paciente && paciente.nombre) {
+                // Mensaje si el usuario ya está registrado
+                await flowDynamic([
+                    `Hola, ${paciente.nombre} 👋`,
+                    `Parece que ya estás registrado en nuestro sistema.`,
+                    `¿Quieres agendar una cita o necesitas algo más?`
+                ]);
             } else {
-                const datosUsuario = sesiones.get(idUsuario);
-                if (!datosUsuario.telefono) {
-                    datosUsuario.telefono = telefonoUsuario;
-                }
+                // Mensaje si el usuario no está registrado
+                await flowDynamic([
+                    'No encontré tu información en nuestro sistema.',
+                    '¿Te gustaría registrarte para agendar una cita? 😊'
+                ]);
             }
-            
-            console.log(`Usuario (${idUsuario}) inició el flujo con teléfono: ${telefonoUsuario}`);
-        })
-        .addAnswer([
-            'Estoy aquí para ayudarte. Por favor, escribe la palabra clave según lo que necesites:',
-            '1️⃣ Escribe "ser" para ver nuestros Servicios disponibles 🦷.',
-            '2️⃣ Escribe "doc" para Agendar una consulta. 📅',
-            '3️⃣ Escribe "con" para conocer nuestra Ubicación y contacto. 📍',
-        ], null, null, [flowServicios, flowDocs, flowContacto]);
-    
+        } catch (error) {
+            console.error('Error al verificar el número de teléfono:', error);
+            await flowDynamic('Estoy aquí para ayudarte. Por favor, escribe la palabra clave según lo que necesites: \n 1️⃣ Escribe "ser" para ver nuestros Servicios disponibles 🦷. \n 2️⃣ Escribe "doc" para Agendar una consulta. 📅 \n 3️⃣ Escribe "con" para conocer nuestra Ubicación y contacto. 📍',);
+        }
+    })
+    .addAnswer([
+        'Esperamos tu respuesta',
+    ], null, null, [flowServicios, flowDocs, flowContacto]);
+
+
 const main = async () => {
     const adapterDB = new MongoAdapter({
         dbUri: MONGO_DB_URI,
