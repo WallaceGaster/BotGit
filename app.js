@@ -57,6 +57,44 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
             return fallBack('Por favor, ingresa un Apellido Materno válido.');
         }
     })
+    .addAnswer('¿Cuál es el género del paciente, masculino o femenino?', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.genero = ctx.body.trim();
+        console.log(`Género (${idUsuario}): ${datosUsuario.genero}`);
+
+        if (datosUsuario.genero !== 'masculino' && datosUsuario.genero !== 'femenino') {
+            return fallBack('Por favor, ingresa "masculino" o "femenino".');
+        }
+        
+    })
+    .addAnswer('¿Cuál es el peso del paciente en kilogramos?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.peso = parseFloat(ctx.body.trim());
+    
+        if (isNaN(datosUsuario.peso) || datosUsuario.peso <= 0) {
+            return fallBack('Por favor, ingresa un peso válido en kilogramos.');
+        }
+    })
+    .addAnswer('¿Cuál es la altura del paciente en centímetros?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.altura = parseFloat(ctx.body.trim());
+    
+        if (isNaN(datosUsuario.altura) || datosUsuario.altura <= 0) {
+            return fallBack('Por favor, ingresa una altura válida en centímetros.');
+        }
+    })
+    .addAnswer('¿Cuál es la dirección completa del paciente?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.direccion = ctx.body.trim();
+    
+        if (!datosUsuario.direccion) {
+            return fallBack('Por favor, ingresa una dirección válida.');
+        }
+    })
     .addAnswer('¿Fue referido por alguno de nuestros pacientes? Si es así, por favor indica su nombre. Si no, simplemente escribe "no" ', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
@@ -150,6 +188,13 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
                 condicion: datosUsuario.condicion,
                 motivoVisita: datosUsuario.motivoVisita,
                 nombreTutor: datosUsuario.nombreTutor || null,
+                genero: datosUsuario.genero,
+                altura: datosUsuario.altura,
+                peso: datosUsuario.peso,
+                direccion: datosUsuario.direccion,
+                alergias:  datosUsuario.alergias || null,
+                medicamentos: datosUsuario.medicamentos || null,
+                idDoctor: datosUsuario.idDoctor || null,
             });
 
             console.log('Respuesta del servidor:', response.data);
