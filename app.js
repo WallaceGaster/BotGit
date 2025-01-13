@@ -161,7 +161,93 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
 
         // Eliminar sesión
         sesiones.delete(idUsuario);
-    });
+    })
+    .addAnswer('📅 Obteniendo la lista de citas disponibles, por favor espera...', null, async (ctx, { flowDynamic }) => {
+        try {
+            // Realiza la petición para obtener los slots disponibles
+            console.log('Iniciando solicitud para obtener citas disponibles.');
+            const response = await axios.get('http://localhost:5000/DentalArce/getAvailableSlots/ce85ebbb918c7c7dfd7bad2eec6c142012d24c2b17e803e21b9d6cc98bb8472b');
+            const slots = response.data;
+            console.log('Citas recuperadas:', slots);
+
+            if (slots.length === 0) {
+                await flowDynamic('❌ No hay citas disponibles en este momento.');
+                return;
+            }
+
+            // Construye un mensaje con las opciones de citas
+            let slotsMessage = '📋 Aquí tienes las citas disponibles:\n';
+            for (let i = 0; i < slots.length; i++) {
+                const slot = slots[i];
+                slotsMessage += `${i + 1}. ${slot.day} ${slot.date} de ${slot.start} a ${slot.end}\n`;
+            }
+            slotsMessage += '';
+
+            // Envía el mensaje con las opciones al usuario
+            await flowDynamic(slotsMessage);
+
+            // Almacena los slots disponibles en la sesión
+            const idUsuario = ctx.from;
+            if (!sesiones.has(idUsuario)) {
+                sesiones.set(idUsuario, {});
+            }
+            const datosUsuario = sesiones.get(idUsuario);
+            datosUsuario.slots = slots; // Guarda los slots disponibles
+        } catch (error) {
+            console.error('Error al obtener las citas disponibles:', error);
+            await flowDynamic('❌ Hubo un error al obtener las citas. Inténtalo más tarde.');
+        }
+    })
+    .addAnswer('Por favor, elige un número correspondiente a tu cita preferida.', { capture: true }, async (ctx, { fallBack, flowDynamic }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        const slots = datosUsuario?.slots;
+
+        if (!slots || slots.length === 0) {
+            await flowDynamic('❌ No hay citas disponibles o se perdió la información. Intenta nuevamente.');
+            return;
+        }
+
+        const userInput = ctx.body.trim();
+        const userChoice = parseInt(userInput, 10);
+
+        if (isNaN(userChoice) || userChoice < 1 || userChoice > slots.length) {
+            return fallBack('❌ Opción inválida. Por favor, elige un número válido de la lista.');
+        }
+
+        // Recupera el slot seleccionado
+        const selectedSlot = slots[userChoice - 1];
+        datosUsuario.horario = `${selectedSlot.day} ${selectedSlot.date} de ${selectedSlot.start} a ${selectedSlot.end}`;
+        console.log(`Usuario (${idUsuario}) seleccionó la cita:`, datosUsuario.horario);
+
+        // Extrae la fecha y hora de start y end
+        const date = selectedSlot.date; // Formato: 2025-01-09
+        const startTime = selectedSlot.start; // Formato: 16:00
+        const endTime = selectedSlot.end; // Formato: 16:45
+
+        // Convierte a formato "YYYY-MM-DDTHH:MM:SS"
+        const startDateTime = `${date}T${startTime}:00`;
+        const endDateTime = `${date}T${endTime}:00`;
+
+        // Realiza la solicitud para reservar la cita
+        try {
+            const response = await axios.post('http://localhost:5000/DentalArce/crearCitaCV/ce85ebbb918c7c7dfd7bad2eec6c142012d24c2b17e803e21b9d6cc98bb8472b/ee75200b88065c8f339787783c521b9f5bcc11242f09ac9dd1512d23a98fb485', {
+                "summary": 'null',
+                "description": 'null',
+                "startDateTime": startDateTime,
+                "endDateTime": endDateTime,
+            });
+            console.log('Respuesta del servidor para reserva:', response.data);
+            await flowDynamic(`✅ Tu cita ha sido reservada exitosamente para el ${datosUsuario.horario}.`);
+        } catch (error) {
+            console.error('Error al reservar la cita:', error);
+            await flowDynamic('❌ Hubo un error al reservar la cita. Por favor, inténtalo más tarde.');
+        }
+
+        // Limpia los datos de los slots para evitar inconsistencias
+        delete datosUsuario.slots;
+    })
+
 
 const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
     .addAnswer('Nos puede compartir su información para abrir su expediente clínico y bloquear espacio en agenda \n¿Apellido parterno del menor?', { capture: true }, async (ctx, { fallBack }) => {
@@ -196,6 +282,44 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
 
         if (!datosUsuario.nombre) {
             return fallBack('Por favor, ingresa un nombre válido.');
+        }
+    })
+    .addAnswer('¿Cuál es el género del menor, masculino o femenino?', { capture: true }, async (ctx, { flowDynamic, fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.genero = ctx.body.trim();
+        console.log(`Género (${idUsuario}): ${datosUsuario.genero}`);
+
+        if (datosUsuario.genero !== 'masculino' && datosUsuario.genero !== 'femenino') {
+            return fallBack('Por favor, ingresa "masculino" o "femenino".');
+        }
+        
+    })
+    .addAnswer('¿Cuál es el peso del menor en kilogramos?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.peso = parseFloat(ctx.body.trim());
+    
+        if (isNaN(datosUsuario.peso) || datosUsuario.peso <= 0) {
+            return fallBack('Por favor, ingresa un peso válido en kilogramos.');
+        }
+    })
+    .addAnswer('¿Cuál es la altura del menor en centímetros?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.altura = parseFloat(ctx.body.trim());
+    
+        if (isNaN(datosUsuario.altura) || datosUsuario.altura <= 0) {
+            return fallBack('Por favor, ingresa una altura válida en centímetros.');
+        }
+    })
+    .addAnswer('¿Cuál es la dirección completa del menor?', { capture: true }, async (ctx, { fallBack }) => {
+        const idUsuario = ctx.from;
+        const datosUsuario = sesiones.get(idUsuario);
+        datosUsuario.direccion = ctx.body.trim();
+    
+        if (!datosUsuario.direccion) {
+            return fallBack('Por favor, ingresa una dirección válida.');
         }
     })
     .addAnswer('Nombre del tutor:', { capture: true }, async (ctx, { fallBack }) => {
@@ -293,14 +417,21 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
                 telefonoWhatsapp: datosUsuario.telefono,
                 nombreReferido: datosUsuario.nombreReferido,
                 horario: datosUsuario.horario || 'Pendiente',
-                ApellidoMaterno: datosUsuario.apellidoMaterno,
-                ApellidoPaterno: datosUsuario.apellidoPaterno,
+                apeM: datosUsuario.apellidoMaterno,
+                apeP: datosUsuario.apellidoPaterno,
                 fechaNac: datosUsuario.fechaNac,
                 correoElectronico: datosUsuario.correoElectronico,
                 apodo: datosUsuario.apodo,
                 condicion: datosUsuario.condicion,
                 motivoVisita: datosUsuario.motivoVisita,
                 nombreTutor: datosUsuario.nombreTutor || null,
+                genero: datosUsuario.genero,
+                altura: datosUsuario.altura,
+                peso: datosUsuario.peso,
+                direccion: datosUsuario.direccion,
+                alergias:  datosUsuario.alergias || null,
+                medicamentos: datosUsuario.medicamentos || null,
+                idDoctor: datosUsuario.idDoctor || null,
             });
 
             console.log('Respuesta del servidor:', response.data);
