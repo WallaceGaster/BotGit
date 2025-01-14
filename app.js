@@ -776,10 +776,14 @@ const flowPrincipal = addKeyword(['hola', 'ole', 'alo', 'inicio'])
             if (paciente && paciente.nombre) {
                 // Mensaje si el usuario ya está registrado
                 await flowDynamic([
-                    `Hola, ${paciente.nombre} 👋`,
-                    `Parece que ya estás registrado en nuestro sistema.`,
-                    `Escribe "Urgente" si necesitas una atencion inmediata y es algo que no puede esperar`,
-                    `Escribe "Mensaje" si necesitas solo informacion o agendar una cita`
+                    `¡Hola, ${paciente.nombre}! 👋\n\n` +
+                    `Nos alegra verte de nuevo. Parece que ya estás registrado en nuestro sistema. 😊\n\n` +
+                    `Aquí tienes algunas opciones para que podamos ayudarte mejor:\n\n` +
+                    `⚡ *Escribe "Urgente"* si necesitas atención inmediata para algo que no puede esperar.\n` +
+                    `📅 *Escribe "Mensaje"* si necesitas información o quieres agendar una cita.\n` +
+                    `🦷 *Escribe "ser"* para descubrir nuestros servicios disponibles.\n` +
+                    `📍 *Escribe "con"* para conocer nuestra ubicación y formas de contacto.\n\n` +
+                    `Estamos aquí para ayudarte. ¡Escribe la opción que necesites! 😊`
                 ]);
             } else {
                 // Mensaje si el usuario no está registrado
@@ -790,7 +794,10 @@ const flowPrincipal = addKeyword(['hola', 'ole', 'alo', 'inicio'])
             }
         } catch (error) {
             console.error('Error al verificar el número de teléfono:', error);
-            await flowDynamic('Estoy aquí para ayudarte. Por favor, escribe la palabra clave según lo que necesites: \n 1️⃣ Escribe "ser" para ver nuestros Servicios disponibles 🦷. \n 2️⃣ Escribe "doc" para Agendar una consulta. 📅 \n 3️⃣ Escribe "con" para conocer nuestra Ubicación y contacto. 📍',);
+            await flowDynamic('Estoy aquí para ayudarte. Por favor, escribe la palabra clave según lo que necesites:\n' +
+                '1️⃣ Escribe "ser" para ver nuestros Servicios disponibles 🦷.\n' +
+                '2️⃣ Escribe "doc" para Agendar una consulta. 📅\n' +
+                '3️⃣ Escribe "con" para conocer nuestra Ubicación y contacto. 📍',);
         }
     })
     .addAnswer([
