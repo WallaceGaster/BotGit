@@ -82,7 +82,7 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
         datosUsuario.altura = parseFloat(ctx.body.trim());
-        
+
         console.log(`Altura (${idUsuario}): ${datosUsuario.altura}`);
         if (isNaN(datosUsuario.altura) || datosUsuario.altura <= 0) {
             return fallBack('Por favor, ingresa una altura válida en centímetros.');
@@ -208,7 +208,7 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
         }
 
         // Eliminar sesión
-        sesiones.delete(idUsuario);
+        // sesiones.delete(idUsuario);
     })
     .addAnswer('📅 Obteniendo la lista de citas disponibles, por favor espera...', null, async (ctx, { flowDynamic }) => {
         try {
@@ -278,10 +278,11 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
         const endDateTime = `${date}T${endTime}:00`;
 
         // Realiza la solicitud para reservar la cita
+        // Realiza la solicitud para reservar la cita
         try {
             const response = await axios.post('http://localhost:5000/DentalArce/crearCitaCV/ce85ebbb918c7c7dfd7bad2eec6c142012d24c2b17e803e21b9d6cc98bb8472b/ee75200b88065c8f339787783c521b9f5bcc11242f09ac9dd1512d23a98fb485', {
-                "summary": 'null',
-                "description": 'null',
+                "summary": datosUsuario.nombre || 'Paciente desconocido', // Aquí se envía el nombre del paciente
+                "description": datosUsuario.motivoVisita || 'Motivo no especificado', // Aquí se envía el motivo de la visita
                 "startDateTime": startDateTime,
                 "endDateTime": endDateTime,
             });
@@ -292,7 +293,9 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
             await flowDynamic('❌ Hubo un error al reservar la cita. Por favor, inténtalo más tarde.');
         }
 
+
         // Limpia los datos de los slots para evitar inconsistencias
+        sesiones.delete(idUsuario);
         delete datosUsuario.slots;
     })
 
@@ -491,7 +494,7 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
         }
 
         // Eliminar sesión
-        sesiones.delete(idUsuario);
+        // sesiones.delete(idUsuario);
     })
     .addAnswer('📅 Obteniendo la lista de citas disponibles, por favor espera...', null, async (ctx, { flowDynamic }) => {
         try {
@@ -563,8 +566,8 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
         // Realiza la solicitud para reservar la cita
         try {
             const response = await axios.post('http://localhost:5000/DentalArce/crearCitaCV/ce85ebbb918c7c7dfd7bad2eec6c142012d24c2b17e803e21b9d6cc98bb8472b/ee75200b88065c8f339787783c521b9f5bcc11242f09ac9dd1512d23a98fb485', {
-                "summary": 'null',
-                "description": 'null',
+                "summary": datosUsuario.nombre || 'Paciente desconocido', // Aquí se envía el nombre del paciente
+                "description": datosUsuario.motivoVisita || 'Motivo no especificado', // Aquí se envía el motivo de la visita
                 "startDateTime": startDateTime,
                 "endDateTime": endDateTime,
             });
@@ -576,6 +579,7 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
         }
 
         // Limpia los datos de los slots para evitar inconsistencias
+        sesiones.delete(idUsuario);
         delete datosUsuario.slots;
     })
 
@@ -642,7 +646,8 @@ const flowPrincipal = addKeyword(['hola', 'ole', 'alo', 'inicio'])
                 await flowDynamic([
                     `Hola, ${paciente.nombre} 👋`,
                     `Parece que ya estás registrado en nuestro sistema.`,
-                    `¿Quieres agendar una cita o necesitas algo más?`
+                    `Escribe "Urgente" si necesitas una atencion inmediata y es algo que no puede esperar`,
+                    `Escribe "Mensaje" si necesitas solo informacion o agendar una cita`
                 ]);
             } else {
                 // Mensaje si el usuario no está registrado
