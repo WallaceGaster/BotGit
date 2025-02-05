@@ -68,35 +68,6 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
         }
 
     })
-    .addAnswer('¿Cuál es el peso del paciente en kilogramos?', { capture: true }, async (ctx, { fallBack }) => {
-        const idUsuario = ctx.from;
-        const datosUsuario = sesiones.get(idUsuario);
-        datosUsuario.peso = parseFloat(ctx.body.trim());
-        console.log(`Peso (${idUsuario}): ${datosUsuario.peso}`);
-
-        if (isNaN(datosUsuario.peso) || datosUsuario.peso <= 0) {
-            return fallBack('Por favor, ingresa un peso válido en kilogramos.');
-        }
-    })
-    .addAnswer('¿Cuál es la altura del paciente en centímetros?', { capture: true }, async (ctx, { fallBack }) => {
-        const idUsuario = ctx.from;
-        const datosUsuario = sesiones.get(idUsuario);
-        datosUsuario.altura = parseFloat(ctx.body.trim());
-
-        console.log(`Altura (${idUsuario}): ${datosUsuario.altura}`);
-        if (isNaN(datosUsuario.altura) || datosUsuario.altura <= 0) {
-            return fallBack('Por favor, ingresa una altura válida en centímetros.');
-        }
-    })
-    .addAnswer('¿Cuál es la dirección completa del paciente?', { capture: true }, async (ctx, { fallBack }) => {
-        const idUsuario = ctx.from;
-        const datosUsuario = sesiones.get(idUsuario);
-        datosUsuario.direccion = ctx.body.trim();
-
-        if (!datosUsuario.direccion) {
-            return fallBack('Por favor, ingresa una dirección válida.');
-        }
-    })
     .addAnswer('¿Fue referido por alguno de nuestros pacientes? Si es así, por favor indica su nombre. Si no, simplemente escribe "no" ', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
@@ -181,7 +152,6 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
                 nombre: datosUsuario.nombre,
                 telefonoPaciente: datosUsuario.telefono,
                 nombreReferido: datosUsuario.nombreReferido,
-                horario: datosUsuario.horario || 'Pendiente',
                 apeM: datosUsuario.apellidoMaterno,
                 apeP: datosUsuario.apellidoPaterno,
                 fechaNac: datosUsuario.fechaNac,
@@ -189,11 +159,11 @@ const flowAgendarCitaMayor = addKeyword(['1', 'Sí'])
                 apodo: datosUsuario.apodo,
                 condicion: datosUsuario.condicion,
                 motivoVisita: datosUsuario.motivoVisita,
-                nombreTutor: datosUsuario.nombreTutor || null,
                 genero: datosUsuario.genero,
-                altura: datosUsuario.altura,
-                peso: datosUsuario.peso,
-                direccion: datosUsuario.direccion,
+                nombreTutor: datosUsuario.nombreTutor || null,
+                altura: datosUsuario.altura || null,
+                peso: datosUsuario.peso || null,
+                direccion: datosUsuario.direccion || null,
                 alergias: datosUsuario.alergias || null,
                 medicamentos: datosUsuario.medicamentos || null,
                 idDoctor: datosUsuario.idDoctor || null,
@@ -346,33 +316,6 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
         }
 
     })
-    .addAnswer('¿Cuál es el peso del menor en kilogramos?', { capture: true }, async (ctx, { fallBack }) => {
-        const idUsuario = ctx.from;
-        const datosUsuario = sesiones.get(idUsuario);
-        datosUsuario.peso = parseFloat(ctx.body.trim());
-
-        if (isNaN(datosUsuario.peso) || datosUsuario.peso <= 0) {
-            return fallBack('Por favor, ingresa un peso válido en kilogramos.');
-        }
-    })
-    .addAnswer('¿Cuál es la altura del menor en centímetros?', { capture: true }, async (ctx, { fallBack }) => {
-        const idUsuario = ctx.from;
-        const datosUsuario = sesiones.get(idUsuario);
-        datosUsuario.altura = parseFloat(ctx.body.trim());
-
-        if (isNaN(datosUsuario.altura) || datosUsuario.altura <= 0) {
-            return fallBack('Por favor, ingresa una altura válida en centímetros.');
-        }
-    })
-    .addAnswer('¿Cuál es la dirección completa del menor?', { capture: true }, async (ctx, { fallBack }) => {
-        const idUsuario = ctx.from;
-        const datosUsuario = sesiones.get(idUsuario);
-        datosUsuario.direccion = ctx.body.trim();
-
-        if (!datosUsuario.direccion) {
-            return fallBack('Por favor, ingresa una dirección válida.');
-        }
-    })
     .addAnswer('Nombre del tutor:', { capture: true }, async (ctx, { fallBack }) => {
         const idUsuario = ctx.from;
         const datosUsuario = sesiones.get(idUsuario);
@@ -467,7 +410,6 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
                 nombre: datosUsuario.nombre,
                 telefonoPaciente: datosUsuario.telefono,
                 nombreReferido: datosUsuario.nombreReferido,
-                horario: datosUsuario.horario || 'Pendiente',
                 apeM: datosUsuario.apellidoMaterno,
                 apeP: datosUsuario.apellidoPaterno,
                 fechaNac: datosUsuario.fechaNac,
@@ -475,11 +417,11 @@ const flowAgendarCitaMenor = addKeyword(['2', 'Sí'])
                 apodo: datosUsuario.apodo,
                 condicion: datosUsuario.condicion,
                 motivoVisita: datosUsuario.motivoVisita,
-                nombreTutor: datosUsuario.nombreTutor || null,
                 genero: datosUsuario.genero,
-                altura: datosUsuario.altura,
-                peso: datosUsuario.peso,
-                direccion: datosUsuario.direccion,
+                nombreTutor: datosUsuario.nombreTutor || null,
+                altura: datosUsuario.altura || null,
+                peso: datosUsuario.peso || null,
+                direccion: datosUsuario.direccion || null,
                 alergias: datosUsuario.alergias || null,
                 medicamentos: datosUsuario.medicamentos || null,
                 idDoctor: datosUsuario.idDoctor || null,
@@ -794,7 +736,7 @@ const flowPrincipal = addKeyword(['hola', 'ole', 'alo', 'inicio'])
             }
         } catch (error) {
             console.error('Error al verificar el número de teléfono:', error);
-            await flowDynamic('Estoy aquí para ayudarte. Por favor, escribe la palabra clave según lo que necesites:\n' +
+            await flowDynamic('Estoy aquí para ayudarte. Por favor, escribe la palabra clave según lo que necesites: \n' +
                 '1️⃣ Escribe "ser" para ver nuestros Servicios disponibles 🦷.\n' +
                 '2️⃣ Escribe "doc" para Agendar una consulta. 📅\n' +
                 '3️⃣ Escribe "con" para conocer nuestra Ubicación y contacto. 📍',);
